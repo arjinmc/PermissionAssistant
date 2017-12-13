@@ -12,7 +12,7 @@ import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.util.Log;
+import android.text.TextUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,12 +21,11 @@ import java.util.Map;
 
 /**
  * Request permission assistant
- * Created by Eminem Lu on 6/4/17.
+ * Created by Eminem Lo on 6/4/17.
  * Email arjinmc@hotmail.com
  */
 
 public final class PermissionAssistant {
-
 
     private static Context mContext;
     private static Map<String, String> mRequestPermissionMap = new HashMap<>();
@@ -42,6 +41,7 @@ public final class PermissionAssistant {
      * @param context
      */
     public static void requestPermissions(Context context) {
+
         mContext = context;
         mUngrantedPermissionList.clear();
         boolean useDialog = false;
@@ -53,15 +53,14 @@ public final class PermissionAssistant {
                     mUngrantedPermissionList.add(permission);
                 }
 
-                //judge if neeed to use our own dialog to request permission
-                if (!useDialog) {
+                //judge if need to use our own dialog to request permission
+                if (!useDialog && mForceGrantAllPermissions) {
                     boolean shouldRequest = ActivityCompat.shouldShowRequestPermissionRationale((Activity) context, permission);
                     if (shouldRequest == false && permissionResult == PackageManager.PERMISSION_DENIED) {
                         useDialog = true;
                     }
                 }
             }
-            Log.e("mUngranted", mUngrantedPermissionList.size() + "");
             if (mUngrantedPermissionList.size() != 0) {
                 if (useDialog) {
                     showDialog(context);
@@ -69,11 +68,28 @@ public final class PermissionAssistant {
                     ActivityCompat.requestPermissions((Activity) context
                             , mUngrantedPermissionList.toArray(new String[mUngrantedPermissionList.size()]), 1);
                 }
+            } else {
+                if (mAlerDialog != null && mAlerDialog.isShowing())
+                    mAlerDialog.dismiss();
             }
         }
 
     }
 
+    /**
+     * force request all permissions
+     *
+     * @param context
+     */
+    public static void forceRequestPermissions(Context context) {
+        if (mForceGrantAllPermissions) {
+            if (isGrantedAllPermissions(context) && mCallback != null) {
+                mCallback.onAllow(null);
+            } else {
+                requestPermissions(context);
+            }
+        }
+    }
 
     /**
      * response callback for request permission result
@@ -87,10 +103,11 @@ public final class PermissionAssistant {
             List<String> grandtedList = new ArrayList<>();
             List<String> denyList = new ArrayList<>();
             for (int i = 0; i < permissionSize; i++) {
-                if (grantResults[i] == PackageManager.PERMISSION_GRANTED)
+                if (grantResults[i] == PackageManager.PERMISSION_GRANTED) {
                     grandtedList.add(permissions[i]);
-                else if (grantResults[i] == PackageManager.PERMISSION_DENIED)
+                } else if (grantResults[i] == PackageManager.PERMISSION_DENIED) {
                     denyList.add(permissions[i]);
+                }
             }
 
             if (grandtedList.size() != 0)
@@ -127,11 +144,13 @@ public final class PermissionAssistant {
      * @param permission
      */
     public static void addPermission(String permission) {
-        mRequestPermissionMap.put(permission, permission);
+        if (!TextUtils.isEmpty(permission)) {
+            mRequestPermissionMap.put(permission, permission);
+        }
     }
 
     /**
-     * add permisions for request
+     * add permissions for request
      *
      * @param permission
      */
@@ -154,10 +173,33 @@ public final class PermissionAssistant {
     }
 
     /**
+     * remove permissions for request
+     *
+     * @param permission
+     */
+    public static void removePermission(String permission[]) {
+        if (permission != null && permission.length != 0) {
+            int len = permission.length;
+            for (int i = 0; i < len; i++) {
+                mRequestPermissionMap.remove(permission[i]);
+            }
+        }
+
+    }
+
+    /**
      * clear all permissions for request
      */
     public static void clearPermission() {
         mRequestPermissionMap.clear();
+    }
+
+    /**
+     * reset all permission setting
+     */
+    public static void reset() {
+        mRequestPermissionMap.clear();
+        mForceGrantAllPermissions = false;
     }
 
     /**
@@ -198,6 +240,7 @@ public final class PermissionAssistant {
      * @param context
      */
     public static void showDialog(final Context context) {
+
         AlertDialog.Builder builder = new AlertDialog.Builder(context)
                 .setTitle(context.getString(R.string.permission_setting))
                 .setMessage(context.getString(R.string.permission_setting_tips))
@@ -223,7 +266,9 @@ public final class PermissionAssistant {
             mAlerDialog.setCancelable(false);
             mAlerDialog.setCanceledOnTouchOutside(false);
         }
-        mAlerDialog.show();
+
+        if (!mAlerDialog.isShowing())
+            mAlerDialog.show();
     }
 
 
@@ -232,9 +277,9 @@ public final class PermissionAssistant {
      */
     public interface PermissionCallback {
 
-        public void onAllow(String[] permission);
+        void onAllow(String[] permission);
 
-        public void onDeny(String[] permission);
+        void onDeny(String[] permission);
 
     }
 

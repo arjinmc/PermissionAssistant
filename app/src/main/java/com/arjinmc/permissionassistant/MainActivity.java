@@ -10,9 +10,9 @@ import android.widget.Button;
 
 public class MainActivity extends AppCompatActivity implements PermissionAssistant.PermissionCallback {
 
-    //this variable control force to grant all permissions
-    private boolean isForceGrantAllPermissions;
-    //init some permissions
+    //This variable control force to grant all permissions,switch it with true/false.
+    private boolean isForceGrantAllPermissions = true;
+    //Init some permissions that you want to request
     private String[] permissions = {Manifest.permission.READ_CONTACTS, Manifest.permission.SEND_SMS};
 
     @Override
@@ -20,20 +20,23 @@ public class MainActivity extends AppCompatActivity implements PermissionAssista
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //set permission request callback
-        PermissionAssistant.setCallback(this);
-        //add permissions for request
+        //Add permissions for request.
         PermissionAssistant.addPermission(permissions);
+        //Set if need to force grant all permissions.
+        PermissionAssistant.setForceGrantAllPermissions(isForceGrantAllPermissions);
+
+        //Set permission request callback if you need to know which permission is granted,which is denied,
+        //and override onAllow() on onDeny().
+        //This callback is not necessary.
+        PermissionAssistant.setCallback(this);
 
         Button btnCheck = (Button) findViewById(R.id.btn_check);
         btnCheck.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
 
-                isForceGrantAllPermissions = true;
-                PermissionAssistant.setForceGrantAllPermissions(isForceGrantAllPermissions);
-
-                requestPermission();
+                //If you don't need to force grant all permission,call this to request.
+                PermissionAssistant.requestPermissions(MainActivity.this);
             }
         });
 
@@ -56,6 +59,8 @@ public class MainActivity extends AppCompatActivity implements PermissionAssista
 
     @Override
     public void onAllow(String[] permission) {
+        if(permission==null)
+            return ;
         for (int i = 0; i < permission.length; i++) {
             Log.e("allow", permission[i]);
         }
@@ -64,6 +69,8 @@ public class MainActivity extends AppCompatActivity implements PermissionAssista
 
     @Override
     public void onDeny(String[] permission) {
+        if(permission==null)
+            return ;
         for (int i = 0; i < permission.length; i++) {
             Log.e("deny", permission[i]);
         }
@@ -73,18 +80,9 @@ public class MainActivity extends AppCompatActivity implements PermissionAssista
     protected void onResume() {
         super.onResume();
 
-        if (isForceGrantAllPermissions) {
-            requestPermission();
-        }
+        //If you need to force grant all permission,call this at in Activity.onReumse()
+        PermissionAssistant.forceRequestPermissions(this);
     }
 
-    private void requestPermission() {
 
-        //if is not grant all permissions
-        if (!PermissionAssistant.isGrantedAllPermissions(MainActivity.this)) {
-            PermissionAssistant.requestPermissions(MainActivity.this);
-        } else {
-            Log.e("PermissionAssistant", "is Granted All Permissions");
-        }
-    }
 }
