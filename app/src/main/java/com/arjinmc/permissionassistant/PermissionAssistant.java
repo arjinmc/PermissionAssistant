@@ -84,7 +84,7 @@ public final class PermissionAssistant {
     public static void forceRequestPermissions(Context context) {
         if (mForceGrantAllPermissions) {
             if (isGrantedAllPermissions(context) && mCallback != null) {
-                mCallback.onAllow(null);
+                mCallback.onAllow(mRequestPermissionMap.keySet().toArray(new String[mRequestPermissionMap.size()]));
             } else {
                 requestPermissions(context);
             }
