@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity implements PermissionAssista
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        //Add this method if you need the grant callback when use PermissionAssistant.setCallback(PermissionCallback);
         PermissionAssistant.onRequestPermissionResult(permissions, grantResults);
     }
 
