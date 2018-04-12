@@ -48,14 +48,24 @@ public final class PermissionAssistant {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             for (String permission : mRequestPermissionMap.keySet()) {
 
-                int permissionResult = ContextCompat.checkSelfPermission(context, permission);
+                int permissionResult = PackageManager.PERMISSION_DENIED;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    permissionResult = context.checkSelfPermission(permission);
+                } else {
+                    permissionResult = ContextCompat.checkSelfPermission(context, permission);
+                }
                 if (permissionResult != PackageManager.PERMISSION_GRANTED) {
                     mUngrantedPermissionList.add(permission);
                 }
 
                 //judge if need to use our own dialog to request permission
                 if (!useDialog && mForceGrantAllPermissions) {
-                    boolean shouldRequest = ActivityCompat.shouldShowRequestPermissionRationale((Activity) context, permission);
+                    boolean shouldRequest = true;
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        shouldRequest = ((Activity) context).shouldShowRequestPermissionRationale(permission);
+                    } else {
+                        shouldRequest = ActivityCompat.shouldShowRequestPermissionRationale((Activity) context, permission);
+                    }
                     if (shouldRequest == false && permissionResult == PackageManager.PERMISSION_DENIED) {
                         useDialog = true;
                     }
@@ -65,8 +75,14 @@ public final class PermissionAssistant {
                 if (useDialog) {
                     showDialog(context);
                 } else {
-                    ActivityCompat.requestPermissions((Activity) context
-                            , mUngrantedPermissionList.toArray(new String[mUngrantedPermissionList.size()]), 1);
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        ((Activity) context).requestPermissions(mUngrantedPermissionList.toArray(new String[mUngrantedPermissionList.size()]), 1);
+                    } else {
+                        ActivityCompat.requestPermissions((Activity) context
+                                , mUngrantedPermissionList.toArray(new String[mUngrantedPermissionList.size()]), 1);
+                    }
+
                 }
             } else {
                 if (mAlerDialog != null && mAlerDialog.isShowing())
@@ -128,7 +144,12 @@ public final class PermissionAssistant {
     public static boolean isGrantedAllPermissions(Context context) {
         int permissionSize = mRequestPermissionMap.size();
         for (String permission : mRequestPermissionMap.keySet()) {
-            int permissionResult = ContextCompat.checkSelfPermission(context, permission);
+            int permissionResult = PackageManager.PERMISSION_DENIED;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                permissionResult = context.checkSelfPermission(permission);
+            } else {
+                permissionResult = ContextCompat.checkSelfPermission(context, permission);
+            }
             if (permissionResult == PackageManager.PERMISSION_GRANTED) {
                 permissionSize--;
             }
@@ -211,7 +232,6 @@ public final class PermissionAssistant {
         mCallback = callback;
     }
 
-
     /**
      * set force to grant all permission
      *
@@ -271,7 +291,6 @@ public final class PermissionAssistant {
             mAlerDialog.show();
     }
 
-
     /**
      * the callback for requesting permission
      */
@@ -282,6 +301,5 @@ public final class PermissionAssistant {
         void onDeny(String[] permission);
 
     }
-
 
 }
