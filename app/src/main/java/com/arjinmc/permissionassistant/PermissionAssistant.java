@@ -70,7 +70,7 @@ public final class PermissionAssistant {
                 int permissionResult = ContextCompat.checkSelfPermission(context, permissions[i]);
                 boolean shouldRequest = ActivityCompat.shouldShowRequestPermissionRationale((Activity) context, permissions[i]);
                 if (permissionResult == PackageManager.PERMISSION_DENIED
-                        && !shouldRequest) {
+                        && !shouldRequest && isForceGrantAll) {
                     useDialog = true;
                     break;
                 }
