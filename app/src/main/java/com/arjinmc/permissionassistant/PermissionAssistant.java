@@ -12,12 +12,9 @@ import android.provider.Settings;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.text.TextUtils;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Request permission assistant
@@ -27,70 +24,67 @@ import java.util.Map;
 
 public final class PermissionAssistant {
 
-    private static Context mContext;
-    private static Map<String, String> mRequestPermissionMap = new HashMap<>();
-    private static List<String> mUngrantedPermissionList = new ArrayList<>();
     private static AlertDialog mAlerDialog;
-    private static boolean mForceGrantAllPermissions;
-
-    private static PermissionCallback mCallback;
 
     /**
-     * check to request permissions
+     * all request permission
      *
      * @param context
+     * @param permissions
      */
-    public static void requestPermissions(Context context) {
+    public static void requestPermissions(Context context, String[] permissions, boolean isForceGrantAll) {
 
-        mContext = context;
-        mUngrantedPermissionList.clear();
-        boolean useDialog = false;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            for (String permission : mRequestPermissionMap.keySet()) {
-
-                int permissionResult = ContextCompat.checkSelfPermission(context, permission);
-                if (permissionResult != PackageManager.PERMISSION_GRANTED) {
-                    mUngrantedPermissionList.add(permission);
-                }
-
-                //judge if need to use our own dialog to request permission
-                if (!useDialog && mForceGrantAllPermissions) {
-                    boolean shouldRequest = ActivityCompat.shouldShowRequestPermissionRationale((Activity) context, permission);
-                    if (shouldRequest == false && permissionResult == PackageManager.PERMISSION_DENIED) {
-                        useDialog = true;
-                    }
-                }
-            }
-            if (mUngrantedPermissionList.size() != 0) {
-                if (useDialog) {
-                    showDialog(context);
-                } else {
-
-                    ActivityCompat.requestPermissions((Activity) context
-                            , mUngrantedPermissionList.toArray(new String[mUngrantedPermissionList.size()]), 1);
-
-                }
-            } else {
-                if (mAlerDialog != null && mAlerDialog.isShowing())
-                    mAlerDialog.dismiss();
-            }
+        if (context == null || permissions == null || permissions.length == 0) {
+            return;
         }
 
+        if (!(context instanceof Activity)) {
+            return;
+        }
+
+        if (mAlerDialog != null && mAlerDialog.isShowing()) {
+            return;
+        }
+
+        boolean useDialog = false;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+
+            //if has granted all,dot not request permission
+            if (isGrantedAllPermissions(context, permissions)) {
+                return;
+            }
+
+            int permissionSize = permissions.length;
+            for (int i = 0; i < permissionSize; i++) {
+                int permissionResult = ContextCompat.checkSelfPermission(context, permissions[i]);
+                boolean shouldRequest = ActivityCompat.shouldShowRequestPermissionRationale((Activity) context, permissions[i]);
+                if (permissionResult == PackageManager.PERMISSION_DENIED
+                        && !shouldRequest) {
+                    useDialog = true;
+                    break;
+                }
+            }
+
+            if (useDialog) {
+                showDialog(context, isForceGrantAll);
+            } else {
+                ActivityCompat.requestPermissions((Activity) context, permissions, 1);
+            }
+        }
     }
 
     /**
-     * force request all permissions
+     * check if has granted permission
      *
      * @param context
+     * @param permission
+     * @return
      */
-    public static void forceRequestPermissions(Context context) {
-        if (mForceGrantAllPermissions) {
-            if (isGrantedAllPermissions(context) && mCallback != null) {
-                mCallback.onAllow(mRequestPermissionMap.keySet().toArray(new String[mRequestPermissionMap.size()]));
-            } else {
-                requestPermissions(context);
-            }
+    public boolean hasGrantedPermission(Context context, String permission) {
+        if (context == null || permission == null) {
+            return false;
         }
+        return ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED;
     }
 
     /**
@@ -99,8 +93,9 @@ public final class PermissionAssistant {
      * @param permissions
      * @param grantResults
      */
-    public static void onRequestPermissionResult(@NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (mCallback != null) {
+    public static void onRequestPermissionResult(@NonNull String[] permissions
+            , @NonNull int[] grantResults, PermissionCallback callback) {
+        if (callback != null) {
             int permissionSize = permissions.length;
             List<String> grandtedList = new ArrayList<>();
             List<String> denyList = new ArrayList<>();
@@ -113,9 +108,9 @@ public final class PermissionAssistant {
             }
 
             if (grandtedList.size() != 0)
-                mCallback.onAllow(grandtedList.toArray(new String[grandtedList.size()]));
+                callback.onAllow(grandtedList.toArray(new String[grandtedList.size()]));
             if (denyList.size() != 0) {
-                mCallback.onDeny(denyList.toArray(new String[denyList.size()]));
+                callback.onDeny(denyList.toArray(new String[denyList.size()]));
             }
 
         }
@@ -123,104 +118,27 @@ public final class PermissionAssistant {
     }
 
     /**
-     * return for is granted all permmission which would be requested
+     * return for if has granted all permmission which would be requested
      *
+     * @param context
+     * @param permissions
      * @return
      */
-    public static boolean isGrantedAllPermissions(Context context) {
-        int permissionSize = mRequestPermissionMap.size();
-        for (String permission : mRequestPermissionMap.keySet()) {
-            int permissionResult = ContextCompat.checkSelfPermission(context, permission);
+    public static boolean isGrantedAllPermissions(Context context, String[] permissions) {
+
+        int permissionSize = permissions.length;
+        int hasGrantedPermissionSize = 0;
+        for (int i = 0; i < permissionSize; i++) {
+            int permissionResult = ContextCompat.checkSelfPermission(context, permissions[i]);
 
             if (permissionResult == PackageManager.PERMISSION_GRANTED) {
-                permissionSize--;
+                hasGrantedPermissionSize++;
             }
         }
-        if (permissionSize == 0)
+        if (permissionSize == hasGrantedPermissionSize) {
             return true;
+        }
         return false;
-    }
-
-    /**
-     * add permission for request
-     *
-     * @param permission
-     */
-    public static void addPermission(String permission) {
-        if (!TextUtils.isEmpty(permission)) {
-            mRequestPermissionMap.put(permission, permission);
-        }
-    }
-
-    /**
-     * add permissions for request
-     *
-     * @param permission
-     */
-    public static void addPermission(String[] permission) {
-        if (permission != null && permission.length != 0) {
-            int permissionSize = permission.length;
-            for (int i = 0; i < permissionSize; i++) {
-                mRequestPermissionMap.put(permission[i], permission[i]);
-            }
-        }
-    }
-
-    /**
-     * remove permission for request
-     *
-     * @param permission
-     */
-    public static void removePermission(String permission) {
-        mRequestPermissionMap.remove(permission);
-    }
-
-    /**
-     * remove permissions for request
-     *
-     * @param permission
-     */
-    public static void removePermission(String permission[]) {
-        if (permission != null && permission.length != 0) {
-            int len = permission.length;
-            for (int i = 0; i < len; i++) {
-                mRequestPermissionMap.remove(permission[i]);
-            }
-        }
-
-    }
-
-    /**
-     * clear all permissions for request
-     */
-    public static void clearPermission() {
-        mRequestPermissionMap.clear();
-    }
-
-    /**
-     * reset all permission setting
-     */
-    public static void reset() {
-        mRequestPermissionMap.clear();
-        mForceGrantAllPermissions = false;
-    }
-
-    /**
-     * set permission callback
-     *
-     * @param callback
-     */
-    public static void setCallback(PermissionCallback callback) {
-        mCallback = callback;
-    }
-
-    /**
-     * set force to grant all permission
-     *
-     * @param foreceGrantPermission
-     */
-    public static void setForceGrantAllPermissions(boolean foreceGrantPermission) {
-        mForceGrantAllPermissions = foreceGrantPermission;
     }
 
     /**
@@ -228,7 +146,7 @@ public final class PermissionAssistant {
      *
      * @param context
      */
-    public static void openSystemPermissionSettting(Context context) {
+    public static void openSystemPermissionSetting(Context context) {
 
         Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
         Uri uri = Uri.fromParts("package", context.getPackageName(), null);
@@ -241,7 +159,7 @@ public final class PermissionAssistant {
      *
      * @param context
      */
-    public static void showDialog(final Context context) {
+    public static void showDialog(final Context context, final boolean isForceGrantAll) {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context)
                 .setTitle(context.getString(R.string.permission_setting))
@@ -250,27 +168,24 @@ public final class PermissionAssistant {
                         , new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
-                                openSystemPermissionSettting(context);
-                            }
-                        }).setNegativeButton(context.getString(R.string.permission_setting_no)
-                        , new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-
-                                if (mForceGrantAllPermissions) {
-                                    showDialog(mContext);
-                                }
+                                openSystemPermissionSetting(context);
                             }
                         });
+        if (!isForceGrantAll) {
+            builder.setNegativeButton(context.getString(R.string.permission_setting_no)
+                    , null);
+        }
 
         mAlerDialog = builder.create();
-        if (mForceGrantAllPermissions) {
+
+        if (isForceGrantAll) {
             mAlerDialog.setCancelable(false);
             mAlerDialog.setCanceledOnTouchOutside(false);
         }
 
-        if (!mAlerDialog.isShowing())
+        if (!mAlerDialog.isShowing()) {
             mAlerDialog.show();
+        }
     }
 
     /**
