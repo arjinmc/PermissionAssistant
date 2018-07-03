@@ -3,18 +3,18 @@ A common tool for Android Permission,support above Android SDK 23 (Android 6.0)
 support Phone xiaomi.  
 
 #How to use
-## add permissions
+## request permission / permissions
 ```java
 
-    private String[] permissions = {
-        Manifest.permission.READ_CONTACTS
-        , Manifest.permission.SEND_SMS};
+private String[] permissions = {
+    Manifest.permission.READ_CONTACTS
+    , Manifest.permission.SEND_SMS};
 
-    //or
+PermissionAssistant.requestPermissions(MainActivity.this, permissions, isForceGrantAllPermissions);
+     
+//or      
 
-    private String permission = Manifest.permission.READ_CONTACTS;
-
-    PermissionAssistant.addPermission(permissions);
+PermissionAssistant.requestPermissions(MainActivity.this, Manifest.permission.READ_CONTACTS, isForceGrantAllPermissions);
 
 ```
 
@@ -31,37 +31,30 @@ PermissionAssistant.setCallback(this);
 
 ```java
 
-    @Override
-    public void onAllow(String[] permission) {
-        for (int i = 0; i < permission.length; i++) {
-            Log.e("allow", permission[i]);
-        }
+@Override
+public void onAllow(String[] permissions) {
+    for (int i = 0; i < permissions.length; i++) {
+        Log.e("allow", permissions[i]);
     }
+}
 
-    @Override
-    public void onDeny(String[] permission) {
-        for (int i = 0; i < permission.length; i++) {
-            Log.e("deny", permission[i]);
-        }
+@Override
+public void onDeny(String[] permissions) {
+    for (int i = 0; i < permissions.length; i++) {
+        Log.e("deny", permissions[i]);
     }
-
-```
-
-## set force grant all permissions 
-```java
-
-    PermissionAssistant.setForceGrantAllPermissions(true);
+}
 
 ```
 
 ## request Permissions
 ```java
-    //if is not grant all permissions
-    if (!PermissionAssistant.isGrantedAllPermissions(context)) {
-        PermissionAssistant.requestPermissions(context);
-    } else {
-        Log.e("PermissionAssistant", "is Granted All Permissions");
-    }
+//if is not grant all permissions
+if (!PermissionAssistant.isGrantedAllPermissions(context)) {
+    PermissionAssistant.requestPermissions(context);
+} else {
+    Log.e("PermissionAssistant", "is Granted All Permissions");
+}
 ```
 
 

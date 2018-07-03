@@ -27,6 +27,17 @@ public final class PermissionAssistant {
     private static AlertDialog mAlerDialog;
 
     /**
+     * request one permission
+     *
+     * @param context
+     * @param permission
+     * @param isForceGrantAll
+     */
+    public static void requestPermissions(Context context, String permission, boolean isForceGrantAll) {
+        requestPermissions(context, new String[]{permission}, isForceGrantAll);
+    }
+
+    /**
      * all request permission
      *
      * @param context
@@ -193,9 +204,9 @@ public final class PermissionAssistant {
      */
     public interface PermissionCallback {
 
-        void onAllow(String[] permission);
+        void onAllow(String[] permissions);
 
-        void onDeny(String[] permission);
+        void onDeny(String[] permissions);
 
     }
 
