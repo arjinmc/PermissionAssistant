@@ -24,7 +24,7 @@ PermissionAssistant.requestPermissions(MainActivity.this, Manifest.permission.RE
 implements PermissionAssistant.PermissionCallback
 
 
-//add this to int Activity  onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults);
+//add this to in Activity onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults);
 
 PermissionAssistant.onRequestPermissionResult(permissions, grantResults, this);
 
