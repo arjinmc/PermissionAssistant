@@ -21,13 +21,16 @@ PermissionAssistant.requestPermissions(MainActivity.this, Manifest.permission.RE
 ## add callback
 ```java
 
-implements PermissionAssistant.PermissionCallback  
+implements PermissionAssistant.PermissionCallback
 
-PermissionAssistant.setCallback(this);
+
+//add this to int Activity  onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults);
+
+PermissionAssistant.onRequestPermissionResult(permissions, grantResults, this);
 
 ```
 
-### callback response for these methods:
+### callback for these methods:
 
 ```java
 
@@ -47,7 +50,7 @@ public void onDeny(String[] permissions) {
 
 ```
 
-## request Permissions
+## check granted all Permissions
 ```java
 //if is not grant all permissions
 if (!PermissionAssistant.isGrantedAllPermissions(context)) {
@@ -56,7 +59,3 @@ if (!PermissionAssistant.isGrantedAllPermissions(context)) {
     Log.e("PermissionAssistant", "is Granted All Permissions");
 }
 ```
-
-
-
-
